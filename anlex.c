@@ -24,7 +24,7 @@ char id[TAMLEX];		// Utilizado por el analizador léxico
 int delantero=-1;		// Utilizado por el analizador léxico
 int fin=0;				// Utilizado por el analizador léxico
 int numLinea=1;         // Número de LInea
-int tabulador=0;        // Eapcio de Tabulación
+int tabulador=0;        // Espacio de Tabulación
 
 char *componentes_token[]={
 		"STRING",
@@ -91,14 +91,15 @@ int main(int argc,char* args[]){
 
 void mensajError(const char* mensaje)
 {
-	printf("Linea %d: Error Léxico Encontrado. %s.\n",numLinea, mensaje);
-	fprintf(output,"Linea %d: Error Lexico Encontrado. %s.\n",numLinea, mensaje);
+	printf("Error Léxico Encontrado. %s.\n", mensaje);
+	fprintf(output, "Error Lexico Encontrado. %s.\n" , mensaje);
 	error = 1;
 	char a;
 
 	while(a!='\n' && a!=EOF){
 		a=fgetc(fuente);
 	}
+	sigLex();
 }
 
 void sigLex(){
@@ -107,7 +108,8 @@ void sigLex(){
     entrada e;
     int acepto=0;
 	int estado=0;
-    char msg[41];
+    char msg[41]; 
+
     while((a=fgetc(fuente))!=EOF){
         if (a=='\t'){//Tabulador
 			tabulador = 1;
@@ -126,37 +128,54 @@ void sigLex(){
 				id[i]=tolower(a);//Se acumula en un vector temporal, con caracteres en minúsculas
 				i++;//Se recorre el vector
 				a=fgetc(fuente);//Se recorre el archivo fuente
-				if (i>=TAMLEX) //Si el indice del vector excede al tamaño máximo
+				if (i>=TAMLEX){ //Si el indice del vector excede al tamaño máximo
 					mensajError("Indice fuera de rango, el identificador no puede superar los 50 caracteres.");
+					//break;
+				}
+
 			}while(isalpha(a));
+		
             id[i]='\0';//Null para el tipo de datos char
-            if (a!=EOF)
+            if (a!=EOF){
                 ungetc(a,fuente);
-            else
+            	
+
+            }else
                 a=0;
             t.pe=buscar(id);
 			t.compLex=t.pe->compLex;
             if (t.pe->compLex==-1){
-				mensajError("No es una palabra reservada.");
+				
+				mensajError("No se esperaba el caracter.");
 			}
+
 			break;
+
+
         }else if (a=='"'){//LITERAL CADENA '"'=.*
             i=0;
 			do{
+
 				id[i]=a;
 				i++;
 				a=fgetc(fuente);
-				if (i>=TAMLEX)
+				if (i>=TAMLEX){
 					mensajError("Indice fuera de rango, el identificador no puede superar los 50 caracteres.");
-			}while(a!='"' && a!=EOF);//while(isdigit(a) || isalpha(a));
+					break;}
+
+			}while((a!='"' && a!=EOF && isalpha(a) )|| a==' ');//while(isdigit(a) || isalpha(a));
+
 			
 			if(a!=EOF){
 				id[i]=a;
 				id[i+1]='\0';
+
 			}
 			
-			if(a!='"'){
-				mensajError("EOF no válido");
+			if(a!='"' && a!=EOF && i<=TAMLEX){
+				
+				sprintf(msg,"No se esperaba '%c'",a);
+				mensajError(msg);
 				break;
 			}else
                 a=0;
@@ -234,7 +253,7 @@ void sigLex(){
 						id[++i]=a;
 						estado=5;
 					}else{
-						sprintf(msg,"No se esperaba '%c'",a);
+						sprintf(msg,"No se esperaba '%c' ",a);
 						estado=-1;
 					}
 					break;
@@ -264,11 +283,13 @@ void sigLex(){
 					t.compLex=LITERAL_NUM;
 					break;
 				case -1:
-					if (a==EOF)
+					if (a==EOF){
 						mensajError("No se esperaba el fin de archivo.");
-					else
+					}
+					else{
 						mensajError(msg);
-					exit(1);
+						estado = 0; //se reinicia el estado para continuar la lectura
+					}
 				}
 			}
 			break;
@@ -298,6 +319,7 @@ void sigLex(){
 			t.pe=buscar(":");
 			break;
 		}
+
 	}
 
 	if (a==EOF){
